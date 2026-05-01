@@ -13,8 +13,8 @@ This skill is invoked by the four `/claudemap-coach:*` commands. The command set
 |---------|-----------------------|---------------------------------|
 | create  | implemented (v0.2)    | §1 Create mode                  |
 | update  | implemented (v0.3)    | §2 Update mode                  |
-| refresh | not yet released      | §6 Stub                         |
-| review  | not yet released      | §6 Stub                         |
+| review  | implemented (v0.4)    | §3 Review mode                  |
+| refresh | not yet released      | §7 Stub                         |
 
 ---
 
@@ -249,7 +249,94 @@ Overall: P% complete.
 
 ---
 
-## §3 Invariants (apply to all modes)
+## §3 Review mode
+
+The `review` workflow runs both subagents on an existing roadmap and presents consolidated feedback. **No edits are applied unless the user explicitly requests one.** This is the contract that distinguishes `review` from `refresh` (and from the create-mode loop).
+
+There is **no critique-revise loop in review mode** — a single review pass, then the user is the gate.
+
+### Step 1 — Locate the roadmap
+
+Same as update mode (§2 Step 1): use `$ARGUMENTS` if provided, otherwise list roadmaps in the configured directory and ask the user to pick. If no roadmaps exist, tell the user to run `/claudemap-coach:create` first.
+
+### Step 2 — Load and validate
+
+- Read the sidecar JSON.
+- Validate against the schema in `templates/progress.json`.
+- If sidecar is missing: tell the user, refuse to proceed (review needs the persona and trend baseline from the sidecar).
+- If `schemaVersion` doesn't match `1.0`: refuse and surface the version mismatch.
+
+### Step 3 — Resolve persona
+
+- If `sidecar.persona` is present and non-empty → use it as-is.
+- If missing or empty → derive a fresh persona from `sidecar.topic` and `sidecar.userInputs.target` using the rules in §1 Step 4. Persist the derived persona back to the sidecar (single-field update — does not require atomic-write of the markdown).
+
+### Step 4 — Parallel review dispatch
+
+Dispatch `roadmap-reviewer` and `roadmap-specialist` **in parallel from a single message** (two `Agent` tool blocks in the same response, not sequential calls). Pass each subagent the full markdown of the current roadmap. Inject the persona into the specialist's prompt.
+
+### Step 5 — Consolidate feedback
+
+Merge both subagents' JSON outputs into a single report. Group by **severity** (critical → high → medium → low), and within each severity group, label the source (`reviewer` vs `specialist`) and number each item:
+
+```
+## Review Report — {topic}
+Persona: {persona_string}
+Reviewed: {timestamp}
+
+### Critical (N)
+1. [specialist] Phase 2 / Resources: "{issue}"
+   → Recommendation: {recommendation}
+   → Evidence: {evidence_url}
+
+2. [reviewer] Phase 3, milestone 4: "{issue}"
+   → Suggestion: {suggestion}
+
+### High (M)
+3. [specialist] Phase 1 / Skills: "{issue}"
+   ...
+
+### Medium (K)
+...
+
+### Low (J)
+...
+
+(If both lists are empty)
+✅ No issues raised by reviewer or specialist. Roadmap looks healthy.
+```
+
+### Step 6 — Present read-only
+
+Output the consolidated report. **Do not edit the roadmap or sidecar.** Tell the user explicitly:
+
+> "This is a read-only review. To apply any of these suggestions, reply with `apply suggestion #N` (one or more numbers, comma-separated) or `apply all critical/high`."
+
+### Step 7 — Optional: apply selected suggestions
+
+If the user follows up with an apply request:
+
+- Parse the suggestion numbers from their message.
+- For each requested suggestion, modify the roadmap markdown and sidecar accordingly.
+- Atomic-write both files using the same pattern as create (Step 9 of §1).
+- Confirm what was applied; show a short diff summary.
+
+If the user does NOT request any apply, the command ends after Step 6 with no file changes.
+
+### Step 8 — Run stats
+
+Append the standard `## Run Stats` block. Include subagent run count (always 2 for review, possibly more if user applied suggestions that required additional subagent verification — none in v1).
+
+### Review-mode-specific invariants
+
+- **Read-only by default** — no file changes without explicit user opt-in.
+- **No critique-revise loop** — single review pass; user is the gate.
+- **Subagents always parallel** — single message, two `Agent` blocks.
+- **Persona is reused** from the sidecar where available; consistency across review runs matters.
+
+---
+
+## §4 Invariants (apply to all modes)
 
 These rules are non-negotiable across every mode:
 
@@ -263,7 +350,7 @@ These rules are non-negotiable across every mode:
 
 ---
 
-## §4 Error handling matrix
+## §5 Error handling matrix
 
 | Failure | Behavior |
 |---|---|
@@ -278,7 +365,7 @@ These rules are non-negotiable across every mode:
 
 ---
 
-## §5 Edge cases
+## §6 Edge cases
 
 - **Topic too vague** (`/create grow`) — clarification before any work.
 - **Topic too broad** (`/create become a billionaire`) — out-of-scope; suggest narrower phrasing.
@@ -289,17 +376,17 @@ These rules are non-negotiable across every mode:
 
 ---
 
-## §6 Other modes (not yet released)
+## §7 Other modes (not yet released)
 
-If invoked in `refresh` or `review` mode in this version, tell the user:
+If invoked in `refresh` mode in this version, tell the user:
 
-> "{Mode} mode lands in a future release — not yet implemented. For now, you can manually edit the markdown file, run `/claudemap-coach:update` to mark progress, or re-run `/claudemap-coach:create` with a fresh topic."
+> "Refresh mode lands in a future release — not yet implemented. For now you can: run `/claudemap-coach:review` to get an expert read on whether your roadmap is still current, run `/claudemap-coach:update` to mark progress, or re-run `/claudemap-coach:create` with a fresh topic to regenerate from scratch."
 
-Do NOT attempt to half-implement these modes.
+Do NOT attempt to half-implement refresh.
 
 ---
 
-## §7 References
+## §8 References
 
 - `templates/roadmap.md.tmpl` — markdown skeleton.
 - `templates/progress.json` — sidecar JSON schema.
