@@ -216,3 +216,11 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Internal planning, specs, and brainstorming notes — never commit
+docs/superpowers/
+
+# OS / editor cruft
+.DS_Store
+*.swp
+*~
