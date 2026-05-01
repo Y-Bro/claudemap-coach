@@ -4,22 +4,30 @@ All notable changes to `claudemap-coach`. Format follows [Keep a Changelog](http
 
 ## [Unreleased]
 
+_No unreleased changes yet._
+
+## [0.5.0] - 2026-05-01
+
+First soft-launch release. All four commands functional, save-location UX polished, repo readied for public distribution.
+
 ### Added
 - **Save-location prompt** across all four commands. `create` now asks at the start where to write the new roadmap with three options: current directory, global library (`claudemapDir` if set, else `~/claudemap/`), or a custom path. `update` / `review` / `refresh` ask the same three-option question to decide where to look for an existing roadmap. Explicit `$ARGUMENTS` paths bypass the prompt. Resolves the surprise of roadmaps silently landing in `~/claudemap/` instead of the user's working repo.
 - `/claudemap-coach:refresh [path]` — fourth working command. Brings an existing roadmap up to date against current trends. Loads sidecar baseline → re-runs trend analysis via WebSearch (informed by `lastRefreshed`) → diffs fresh signals against baseline → generates change proposals (link rot, newly emerged, newly deprecated, salary drift) → user gates each proposal → applies accepted changes → re-runs `roadmap-reviewer` + `roadmap-specialist` in parallel with the same critique-revise loop as create (cap 2, auto-apply `critical`/`high`) → user gates remaining `medium`/`low` → atomic-writes both files → bumps `lastRefreshed` and updates `trendSignals` baseline.
 - `commands/roadmap-refresh.md` — slash command file.
 - `skills/roadmap-coach/SKILL.md` §4 Refresh mode — full 12-step workflow.
+- `CONTRIBUTING.md`, `SECURITY.md`, GitHub issue + PR templates — community scaffolding for public distribution.
 
 ### Changed
+- `.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json` — version bumped to `0.5.0`; marketplace entry now includes `homepage`, `license`, and `keywords`.
 - `skills/roadmap-coach/SKILL.md` §1 Create mode — inserted Step 1.5 (save-location prompt); Step 9 now reads the chosen directory instead of computing `~/claudemap/<slug>.md` directly.
 - `skills/roadmap-coach/SKILL.md` §2/§3/§4 — Step 1 of each mode now runs the same three-option location prompt before listing roadmaps.
-
-### Changed
 - `skills/roadmap-coach/SKILL.md` mode dispatch table — `refresh` is now `implemented (v0.5)`. **All four commands now functional.**
-- Section numbering: inserted §4 Refresh; renumbered downstream invariants/error/edge sections; removed the now-obsolete "Other modes (not yet released)" stub section entirely.
+- `README.md` — dropped pre-release status banner and "(planned)" license caveat now that the LICENSE file is real MIT and all four commands ship.
+- Section numbering in SKILL.md: inserted §4 Refresh; renumbered downstream invariants/error/edge sections; removed the now-obsolete "Other modes (not yet released)" stub section entirely.
 
 ### Notes
-- Feature parity with the design is complete. Remaining work is release hardening: lint script, test fixtures, e2e checklist.
+- Feature parity with the design is complete. Validation against real users is the next milestone before cutting `1.0.0`.
+- Known gaps tracked for `0.6.0`+: lint script, automated test fixtures, end-to-end checklist, sample roadmaps in `examples/`.
 
 ## [0.4.0] - 2026-05-01
 

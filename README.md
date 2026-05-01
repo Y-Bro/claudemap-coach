@@ -2,7 +2,7 @@
 
 > Turn any career or learning goal into a personalized, trend-aware roadmap — right inside Claude Code.
 
-**Status:** Pre-release — under active development.
+`v0.5.0` · Soft launch · MIT licensed
 
 ---
 
@@ -33,7 +33,7 @@ Most career and learning advice is generic, outdated, or buried in 30 browser ta
 
 ## Quick start
 
-Once published:
+Install the plugin from the marketplace:
 
 ```bash
 claude plugin install Y-Bro/claudemap-coach
@@ -45,7 +45,7 @@ Then in Claude Code:
 /claudemap-coach:create AI Engineer
 ```
 
-Answer a few questions and the coach takes it from there. A first run typically takes 5–10 minutes of light back-and-forth.
+The coach will ask where to save the roadmap (your current directory, the global library at `~/claudemap/`, or a custom path), walk you through a short discovery conversation, research current trends, and produce a reviewed roadmap. A first run typically takes 5–10 minutes of light back-and-forth.
 
 ---
 
@@ -112,9 +112,9 @@ Roadmaps are saved as plain markdown to `~/claudemap/<slug>.md`. Open them in an
 
 | Setting | Default | Purpose |
 |---|---|---|
-| `claudemapDir` | `~/claudemap` | Where roadmaps and progress files are stored |
+| `claudemapDir` | `~/claudemap` | Default location for the **Global library** option in the save-location prompt |
 
-Set it through your Claude Code plugin configuration. You can also pass an explicit file path to any of the `update` / `refresh` / `review` commands.
+You don't have to set this — every command opens with a three-option location prompt (current directory, global library, custom path). `claudemapDir` only changes what "global library" resolves to. You can also pass an explicit file path to any of the `update` / `refresh` / `review` commands to skip the prompt entirely.
 
 ---
 
@@ -126,16 +126,23 @@ Each command prints a short usage summary at the end so you can see exactly what
 
 ## Roadmap (the meta one)
 
-- [ ] First public release
-- [ ] Marketplace listing
+- [x] First soft-launch release (`v0.5.0`)
+- [ ] Listing in the official Claude Code plugin marketplace
 - [ ] Example gallery (sample roadmaps for common goals)
-- [ ] Optional GitHub-rendered live demo
+- [ ] Demo recording (asciinema or GIF)
+- [ ] `1.0.0` after the first external user has a clean end-to-end run
+
+---
+
+## Contributing
+
+Bug reports, feature requests, and PRs welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and the contribution flow, and [SECURITY.md](SECURITY.md) for vulnerability disclosure.
 
 ---
 
 ## License
 
-MIT (planned)
+[MIT](LICENSE)
 
 ---
 
