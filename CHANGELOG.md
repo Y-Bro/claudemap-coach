@@ -5,17 +5,23 @@ All notable changes to `claudemap-coach`. Format follows [Keep a Changelog](http
 ## [Unreleased]
 
 ### Added
+- `/claudemap-coach:refresh [path]` — fourth working command. Brings an existing roadmap up to date against current trends. Loads sidecar baseline → re-runs trend analysis via WebSearch (informed by `lastRefreshed`) → diffs fresh signals against baseline → generates change proposals (link rot, newly emerged, newly deprecated, salary drift) → user gates each proposal → applies accepted changes → re-runs `roadmap-reviewer` + `roadmap-specialist` in parallel with the same critique-revise loop as create (cap 2, auto-apply `critical`/`high`) → user gates remaining `medium`/`low` → atomic-writes both files → bumps `lastRefreshed` and updates `trendSignals` baseline.
+- `commands/roadmap-refresh.md` — slash command file.
+- `skills/roadmap-coach/SKILL.md` §4 Refresh mode — full 12-step workflow.
+
+### Changed
+- `skills/roadmap-coach/SKILL.md` mode dispatch table — `refresh` is now `implemented (v0.5)`. **All four commands now functional.**
+- Section numbering: inserted §4 Refresh; renumbered downstream invariants/error/edge sections; removed the now-obsolete "Other modes (not yet released)" stub section entirely.
+
+### Notes
+- Feature parity with the design is complete. Remaining work is release hardening: lint script, test fixtures, e2e checklist.
+
+## [0.4.0] - 2026-05-01
+
+### Added
 - `/claudemap-coach:review [path]` — third working command. Read-only expert review of an existing roadmap. Dispatches `roadmap-reviewer` and `roadmap-specialist` in parallel against the current markdown, consolidates feedback into a single severity-grouped report, and presents it without editing. The user can opt-in to apply specific suggestions with `apply suggestion #N` (or `apply all critical/high`); otherwise no files change.
 - `commands/roadmap-review.md` — slash command file.
 - `skills/roadmap-coach/SKILL.md` §3 Review mode — full 8-step workflow (locate → load → resolve persona → parallel dispatch → consolidate → present read-only → optional apply → run stats).
-
-### Changed
-- `skills/roadmap-coach/SKILL.md` mode dispatch table — `review` is now `implemented (v0.4)`.
-- Section numbering renumbered to insert §3 Review mode (downstream sections shifted by one).
-- §7 stub list narrowed to `refresh` only.
-
-### Notes
-- `/claudemap-coach:refresh` is the only command still pending; it will land in a future release.
 
 ## [0.3.0] - 2026-05-01
 
