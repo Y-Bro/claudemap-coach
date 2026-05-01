@@ -1,0 +1,20 @@
+{
+  "name": "claudemap-coach-marketplace",
+  "description": "Distribution marketplace for the claudemap-coach plugin",
+  "owner": {
+    "name": "Bharath Yerrumsetty",
+    "email": "yerrumsetty.bharath@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "claudemap-coach",
+      "description": "Turn career and learning goals into personalized, trend-grounded roadmaps with expert-reviewed quality.",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "Bharath Yerrumsetty",
+        "email": "yerrumsetty.bharath@gmail.com"
+      }
+    }
+  ]
+}
