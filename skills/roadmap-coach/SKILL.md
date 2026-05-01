@@ -14,7 +14,7 @@ This skill is invoked by the four `/claudemap-coach:*` commands. The command set
 | create  | implemented (v0.2)    | §1 Create mode                  |
 | update  | implemented (v0.3)    | §2 Update mode                  |
 | review  | implemented (v0.4)    | §3 Review mode                  |
-| refresh | not yet released      | §7 Stub                         |
+| refresh | implemented (v0.5)    | §4 Refresh mode                 |
 
 ---
 
@@ -336,7 +336,118 @@ Append the standard `## Run Stats` block. Include subagent run count (always 2 f
 
 ---
 
-## §4 Invariants (apply to all modes)
+## §4 Refresh mode
+
+The `refresh` workflow brings an existing roadmap up to date against current trends. It combines the diff-and-propose UX of update with the review machinery of create. Two user-gating points: (1) on the trend-driven change proposals before they're applied, (2) on the medium/low review feedback after the loop converges.
+
+### Step 1 — Locate the roadmap
+
+Same as update mode (§2 Step 1): use `$ARGUMENTS` if provided, otherwise list roadmaps and ask the user to pick. If no roadmaps exist, tell the user to run `/claudemap-coach:create` first.
+
+### Step 2 — Load and validate
+
+- Read sidecar JSON; validate against `templates/progress.json`.
+- If sidecar is missing or `schemaVersion` doesn't match `1.0`: refuse and surface the error.
+- Note the sidecar's `lastRefreshed` (or `createdAt` if never refreshed). This drives the freshness window in Step 4.
+
+### Step 3 — Resolve persona
+
+Same as review mode (§3 Step 3): reuse `sidecar.persona`; derive fresh from topic + target if missing.
+
+### Step 4 — Trend re-analysis
+
+Run WebSearch using patterns from `references/trend-search-patterns.md`, with these emphases:
+
+- **Refresh-specific queries first** — `what's new in {topic} since {lastRefreshed_date}` and `{topic} announcements {YYYY-MM}`. These surface what changed in the freshness window.
+- **Standard trend queries** — re-run a subset of the create-mode patterns (industry trends, skill stack currency, reputable resources) to refresh the full snapshot, not just deltas.
+- **Resource link verification** — for every resource currently named in the sidecar, query its title to confirm it still exists and is reputable. Flag link rot and supersession.
+
+Hard cap: **8 WebSearch calls** for the main agent in this step (the specialist gets its own 5-call budget at Step 9).
+
+Batch all queries as parallel WebSearch calls in a single message where possible.
+
+### Step 5 — Diff against baseline
+
+Compare fresh signals against `sidecar.trendSignals`. Categorize differences:
+
+- **Newly emerged** — items present in fresh signals but absent from baseline (new top-in-demand skill, new reputable resource).
+- **Newly deprecated** — items now flagged as deprecated/fading that were previously listed as relevant.
+- **Link rot** — resources whose URLs no longer resolve or whose reputation has changed.
+- **Salary drift** — compensation anchors that have moved materially (>15% in either direction).
+- **Stable** — items unchanged. (Not surfaced; no proposal needed.)
+
+### Step 6 — Generate change proposals
+
+For each diff item, build a proposal:
+
+```
+Proposal #N:
+  Location:     Phase 2 → Resources / "Karpathy zero-to-hero"
+  Type:         link-rot | newly-emerged | newly-deprecated | salary-drift
+  Current:      "{the existing text or item}"
+  Proposed:     "{the suggested replacement or addition}"
+  Reason:       {one-line rationale}
+  Evidence:     {URL from the WebSearch result that backs this}
+```
+
+Order proposals by impact: link-rot and newly-deprecated first (these break the roadmap), newly-emerged next (these strengthen it), salary-drift last (informational).
+
+### Step 7 — User gates each proposal
+
+Present proposals one screen at a time (or all at once if there are <5). For each, ask: `[accept | revise | reject]`.
+
+- `accept` — apply as-is to the draft.
+- `revise` — ask the user how they'd modify it; apply their version.
+- `reject` — leave the roadmap untouched at that location.
+
+Build a refreshed draft that incorporates only accepted/revised proposals.
+
+### Step 8 — Refreshed draft assembled
+
+The refreshed draft is the existing roadmap with accepted changes applied. The sidecar's `trendSignals` is also updated with the fresh values (deferred to write at Step 11; held in memory for now).
+
+### Step 9 — Parallel review dispatch + critique-revise loop
+
+Dispatch `roadmap-reviewer` and `roadmap-specialist` **in parallel from a single message** against the refreshed draft. Inject the persona into the specialist's prompt.
+
+Run the critique-revise loop **exactly as in §1 Step 7** (max 2 iterations; auto-apply only `critical`/`high`; log each fix to `revisionLog`; if cap is hit with critical/high still flagged, surface for user arbitration).
+
+### Step 10 — User gating of medium/low
+
+Present remaining `medium`/`low` review items to the user with `[accept | revise | reject]`. Apply decisions to the draft.
+
+### Step 11 — Atomic write + sidecar updates
+
+Determine the output path:
+- Default: same path the user opened (overwrite in place).
+- If user passes a different path explicitly, use that.
+
+Update the sidecar:
+- `lastRefreshed` → current ISO 8601 timestamp.
+- `trendSignals` → the fresh signals from Step 4.
+- `revisionLog` → append entries from the Step 9 loop iterations.
+
+Atomic-write both files using the same pattern as create (Step 9 of §1):
+1. Stage `<path>.md.tmp` and `<path>.json.tmp`.
+2. Validate (sidecar against schema, markdown headings, Mermaid parses).
+3. Two-step rename.
+4. On any failure, keep originals untouched.
+
+### Step 12 — Run stats
+
+Append the standard `## Run Stats` block. Refresh runs typically have higher token usage than create because they include both the trend re-analysis and the full review loop on the refreshed draft.
+
+### Refresh-mode-specific invariants
+
+- **Two user-gating points** — change proposals (Step 7) AND medium/low review items (Step 10).
+- **Resource verification is mandatory** — every resource named in the sidecar gets queried for currency. Stale resources cannot stay silent.
+- **Sidecar `lastRefreshed` is the freshness anchor** — never refresh "since the beginning of time"; always since the last refresh (or create) date.
+- **Same critique-revise discipline as create** — cap 2, auto-apply critical/high only.
+- **`trendSignals` baseline is updated atomically with the markdown** — never leave them out of sync.
+
+---
+
+## §5 Invariants (apply to all modes)
 
 These rules are non-negotiable across every mode:
 
@@ -350,7 +461,7 @@ These rules are non-negotiable across every mode:
 
 ---
 
-## §5 Error handling matrix
+## §6 Error handling matrix
 
 | Failure | Behavior |
 |---|---|
@@ -365,7 +476,7 @@ These rules are non-negotiable across every mode:
 
 ---
 
-## §6 Edge cases
+## §7 Edge cases
 
 - **Topic too vague** (`/create grow`) — clarification before any work.
 - **Topic too broad** (`/create become a billionaire`) — out-of-scope; suggest narrower phrasing.
@@ -373,16 +484,6 @@ These rules are non-negotiable across every mode:
 - **Roadmap clobber** — see Step 9.
 - **Concurrent runs** — see Step 9.
 - **Non-English topics** — supported. Persona should be region-aware where the topic implies a market (e.g., "20→50 LPA" → Indian tech market).
-
----
-
-## §7 Other modes (not yet released)
-
-If invoked in `refresh` mode in this version, tell the user:
-
-> "Refresh mode lands in a future release — not yet implemented. For now you can: run `/claudemap-coach:review` to get an expert read on whether your roadmap is still current, run `/claudemap-coach:update` to mark progress, or re-run `/claudemap-coach:create` with a fresh topic to regenerate from scratch."
-
-Do NOT attempt to half-implement refresh.
 
 ---
 
