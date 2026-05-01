@@ -29,7 +29,28 @@ The command passes a topic string. Decide:
 - **Out of scope?** If the topic is clearly outside career or learning (life-coaching, fitness, business launch, finance), decline politely and suggest rephrasing as a learning goal if applicable. Stop.
 - **Too broad?** ("become a billionaire", "be successful") — flag and ask for a narrower target. Stop until clarified.
 - **Too vague?** ("grow", "improve") — ask one clarifying question. Don't proceed until topic is concrete enough to drive trend search.
-- **In scope and concrete?** Proceed to Step 2.
+- **In scope and concrete?** Proceed to Step 1.5.
+
+### Step 1.5 — Save-location prompt
+
+Before discovery, ask the user where the roadmap should be saved. Single question, three options:
+
+```
+Where should I save this roadmap?
+1. Current directory: {cwd}/{slug}.md
+2. Global library:    {global_dir}/{slug}.md
+3. Custom path (you provide)
+```
+
+Resolution rules:
+- `{slug}` — derived from the validated topic (lowercase, hyphenated). Compute it now so the user sees the real filename.
+- `{cwd}` — the shell working directory at command start.
+- `{global_dir}` — `claudemapDir` plugin setting if set, otherwise `~/claudemap/`.
+- **Option 3** — ask for a path; expand `~` and resolve relative paths against `{cwd}`. The path is the **directory**; the filename is always `{slug}.md` inside it.
+- If the resolved directory doesn't exist, offer to create it (`mkdir -p`); on refusal, re-prompt.
+- Persist the resolved absolute directory in memory for Step 9; the sidecar is written next to the markdown in the same directory.
+
+**Skip this prompt** if the command's `$ARGUMENTS` already includes an explicit output path (e.g., `/claudemap-coach:create AI Engineer ./roadmaps/ai.md`).
 
 ### Step 2 — Discovery script
 
@@ -117,9 +138,8 @@ For each `medium`/`low` suggestion, ask: `[accept | revise | reject]`. Apply use
 
 ### Step 9 — Atomic write + run stats
 
-Determine the output path:
-- Default: `~/claudemap/<slug>.md` where slug is derived from the topic (lowercase, hyphenated).
-- Override: if user passed an explicit path, use it. If `claudemapDir` plugin setting is set, use that as the directory.
+Output path:
+- Use the directory chosen at Step 1.5 (or the explicit `$ARGUMENTS` path that caused Step 1.5 to be skipped). The filename is `<slug>.md`; the sidecar is `<slug>.json` in the same directory.
 
 **Atomic write pattern:**
 1. Stage both files: write to `<path>.md.tmp` and `<path>.json.tmp`.
@@ -160,9 +180,20 @@ The `update` workflow is much cheaper than `create` — no subagents, no WebSear
 
 ### Step 1 — Locate the roadmap
 
-- If the command passed an explicit path → use it.
-- Otherwise: list `*.md` files in the default roadmap directory (the `claudemapDir` plugin setting, or `~/claudemap/` as fallback). For each, show: filename, topic (from sidecar), last-updated date, completion percentage. Ask the user to pick one.
-- If no roadmaps exist, tell the user: `"No roadmaps found in <dir>. Run /claudemap-coach:create <topic> first."` Stop.
+If the command passed an explicit path → use it; skip the rest of this step.
+
+Otherwise, ask the user where to look (same 3-option prompt as create-mode Step 1.5, but framed for lookup):
+
+```
+Where is the roadmap?
+1. Current directory: {cwd}
+2. Global library:    {global_dir}   (claudemapDir if set, else ~/claudemap/)
+3. Custom path (you provide)
+```
+
+Then list `*.md` files in the chosen directory. For each, show: filename, topic (from sidecar), last-updated date, completion percentage. Ask the user to pick one.
+
+If no roadmaps exist in the chosen directory, tell the user: `"No roadmaps found in <dir>. Run /claudemap-coach:create <topic> first, or pick a different location."` Offer to re-prompt or stop.
 
 ### Step 2 — Load and validate
 
@@ -257,7 +288,7 @@ There is **no critique-revise loop in review mode** — a single review pass, th
 
 ### Step 1 — Locate the roadmap
 
-Same as update mode (§2 Step 1): use `$ARGUMENTS` if provided, otherwise list roadmaps in the configured directory and ask the user to pick. If no roadmaps exist, tell the user to run `/claudemap-coach:create` first.
+Same as update mode (§2 Step 1): if `$ARGUMENTS` is provided use it, otherwise run the 3-option location prompt (current directory / global library / custom path), list roadmaps in the chosen directory, and ask the user to pick. If no roadmaps exist there, tell the user to run `/claudemap-coach:create` first or re-prompt for a different location.
 
 ### Step 2 — Load and validate
 
@@ -342,7 +373,7 @@ The `refresh` workflow brings an existing roadmap up to date against current tre
 
 ### Step 1 — Locate the roadmap
 
-Same as update mode (§2 Step 1): use `$ARGUMENTS` if provided, otherwise list roadmaps and ask the user to pick. If no roadmaps exist, tell the user to run `/claudemap-coach:create` first.
+Same as update mode (§2 Step 1): if `$ARGUMENTS` is provided use it, otherwise run the 3-option location prompt (current directory / global library / custom path), list roadmaps in the chosen directory, and ask the user to pick. If no roadmaps exist there, tell the user to run `/claudemap-coach:create` first or re-prompt for a different location.
 
 ### Step 2 — Load and validate
 
