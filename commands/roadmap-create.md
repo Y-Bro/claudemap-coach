@@ -15,7 +15,7 @@ Invoke the `roadmap-coach` skill in **create** mode and follow its create-mode w
 4. Run trend analysis via WebSearch using the patterns in `references/trend-search-patterns.md`.
 5. Render a draft roadmap using `templates/roadmap.md.tmpl`.
 6. Derive a specialist persona from the topic and target.
-7. Dispatch `roadmap-reviewer` and `roadmap-specialist` subagents in parallel (single message, two `Agent` tool blocks).
+7. Dispatch the two reviewers in parallel — single message, two `Agent` tool blocks. Use bare `subagent_type` values exactly: `"roadmap-reviewer"` and `"roadmap-specialist"`. Do NOT prefix with `claudemap-coach:` or wrap in `plugin:` — namespaced forms silently no-op. If a subagent reports 0 tool uses, do NOT re-dispatch with a different name; see SKILL.md §5 for why.
 8. Run the critique-revise loop (max 2 iterations; auto-apply only `critical` and `high`; surface `medium`/`low` to the user at the end).
 9. Atomic-write the roadmap markdown and JSON sidecar to the directory chosen at step 2, as `<slug>.md` and `<slug>.json`.
 10. Append a `## Run Stats` block to the terminal output with token usage and approximate cost.

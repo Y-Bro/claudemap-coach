@@ -105,10 +105,10 @@ Render the roadmap using `templates/roadmap.md.tmpl`. Fill in:
 
 ### Step 6 — Parallel review dispatch
 
-Dispatch `roadmap-reviewer` and `roadmap-specialist` subagents **in parallel from a single message** (two `Agent` tool blocks in the same response, not sequential calls).
+Dispatch the structural reviewer and the domain specialist **in parallel from a single message** (two `Agent` tool blocks in the same response, not sequential calls). Use **bare** `subagent_type` values — see §5 for the full rule.
 
-- **roadmap-reviewer** prompt: include the full draft roadmap and ask for structural review. No persona — generic checks only.
-- **roadmap-specialist** prompt: include the full draft roadmap **and** the persona string from Step 4. Instruct it to fully adopt the persona and use WebSearch to verify currency.
+- **`subagent_type: "roadmap-reviewer"`** — prompt includes the full draft roadmap and asks for structural review. No persona — generic checks only. (Expected: 0 tool uses; the reviewer returns JSON without calling tools.)
+- **`subagent_type: "roadmap-specialist"`** — prompt includes the full draft roadmap **and** the persona string from Step 4. Instruct it to fully adopt the persona and use WebSearch to verify currency. The persona MUST be non-empty in the prompt or the agent will early-return with a "No persona injected" error.
 
 Each subagent returns a JSON list of `{location, severity, issue, suggestion|recommendation, evidence_url?}` items where `severity ∈ {critical, high, medium, low}`.
 
@@ -304,7 +304,7 @@ Same as update mode (§2 Step 1): if `$ARGUMENTS` is provided use it, otherwise 
 
 ### Step 4 — Parallel review dispatch
 
-Dispatch `roadmap-reviewer` and `roadmap-specialist` **in parallel from a single message** (two `Agent` tool blocks in the same response, not sequential calls). Pass each subagent the full markdown of the current roadmap. Inject the persona into the specialist's prompt.
+Dispatch the two reviewers **in parallel from a single message** (two `Agent` tool blocks in the same response, not sequential calls). Use bare `subagent_type` values — `"roadmap-reviewer"` and `"roadmap-specialist"` — per §5. Pass each subagent the full markdown of the current roadmap. Inject the resolved persona (Step 3) into the specialist's prompt; an empty persona triggers its early-return.
 
 ### Step 5 — Consolidate feedback
 
@@ -439,7 +439,7 @@ The refreshed draft is the existing roadmap with accepted changes applied. The s
 
 ### Step 9 — Parallel review dispatch + critique-revise loop
 
-Dispatch `roadmap-reviewer` and `roadmap-specialist` **in parallel from a single message** against the refreshed draft. Inject the persona into the specialist's prompt.
+Dispatch the two reviewers **in parallel from a single message** against the refreshed draft. Use bare `subagent_type` values — `"roadmap-reviewer"` and `"roadmap-specialist"` — per §5. Inject the persona into the specialist's prompt (non-empty, or it will early-return).
 
 Run the critique-revise loop **exactly as in §1 Step 7** (max 2 iterations; auto-apply only `critical`/`high`; log each fix to `revisionLog`; if cap is hit with critical/high still flagged, surface for user arbitration).
 
@@ -485,6 +485,8 @@ These rules are non-negotiable across every mode:
 - **One question at a time** during user-facing dialogue. No multi-question messages.
 - **WebSearch always before generation** in `create` and `refresh`. Trends ground the output.
 - **Subagents always parallel** when dispatching multiple — single message, multiple `Agent` blocks.
+- **Bare agent names only.** When invoking the `Agent` tool, `subagent_type` must be exactly `"roadmap-reviewer"` or `"roadmap-specialist"`. Never prefix with the plugin name (`claudemap-coach:roadmap-reviewer`), never wrap in `plugin:`. A mismatched `subagent_type` silently no-ops — Claude Code does NOT raise an error — so namespaced forms produce a fake "0 tool uses · Done" with no actual run.
+- **Don't re-dispatch on "0 tool uses".** It is **expected** for `roadmap-reviewer` (its job is pure JSON analysis from the prompt — it has no tools to call). For `roadmap-specialist`, 0 tool uses signals **the prompt didn't carry a non-empty persona string**, which triggers the agent's early-return path; fix the persona injection in the dispatch prompt — do NOT rename, re-namespace, or otherwise mutate `subagent_type`.
 - **Never finalize** without the critique-revise loop reaching convergence-or-cap AND user gating remaining `medium`/`low`.
 - **Atomic write only** — never write the markdown without the sidecar, or vice versa.
 - **Run stats always at end** of every command's terminal output.

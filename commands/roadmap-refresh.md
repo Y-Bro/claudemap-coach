@@ -17,7 +17,7 @@ Invoke the `roadmap-coach` skill in **refresh** mode and follow its refresh-mode
 6. Generate change proposals — each tied to a specific location in the roadmap with reasoning and evidence URL.
 7. User gates each proposal: `[accept | revise | reject]`.
 8. Apply accepted changes to produce a refreshed draft.
-9. Dispatch `roadmap-reviewer` and `roadmap-specialist` in parallel on the refreshed draft. Run the critique-revise loop (max 2 iterations; auto-apply only `critical`/`high`).
+9. Dispatch the two reviewers in parallel on the refreshed draft. Use bare `subagent_type` values exactly: `"roadmap-reviewer"` and `"roadmap-specialist"` — never namespaced. Run the critique-revise loop (max 2 iterations; auto-apply only `critical`/`high`). If a subagent reports 0 tool uses, do NOT re-dispatch with a different name; see SKILL.md §5.
 10. Surface remaining `medium`/`low` review items for user gating.
 11. Atomic-write the refreshed markdown + sidecar. Bump `sidecar.lastRefreshed`; update `sidecar.trendSignals` with the fresh baseline.
 12. Append the `## Run Stats` block.
