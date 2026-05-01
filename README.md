@@ -31,21 +31,66 @@ Most career and learning advice is generic, outdated, or buried in 30 browser ta
 
 ---
 
-## Quick start
+## Installation
 
-Install the plugin from the marketplace:
+`claudemap-coach` is a Claude Code plugin, distributed through this repo's plugin marketplace. Install it from inside a Claude Code session in two steps.
 
-```bash
-claude plugin install Y-Bro/claudemap-coach
+**Prerequisites:** any current version of [Claude Code](https://docs.claude.com/en/docs/claude-code/overview). No flags or settings to flip.
+
+**1. Add the marketplace** (one-time, per machine):
+
+```
+/plugin marketplace add Y-Bro/claudemap-coach
 ```
 
-Then in Claude Code:
+**2. Install the plugin:**
+
+```
+/plugin install claudemap-coach@Y-Bro/claudemap-coach
+```
+
+That's it — the four `/claudemap-coach:*` commands are now available.
+
+> Prefer a UI? Run `/plugin`, open **Discover**, find _claudemap-coach_, and install interactively. Useful if you want to pick install scope (user vs. project).
+
+To upgrade later, run `/plugin marketplace update Y-Bro/claudemap-coach` and reinstall. To remove it, `/plugin uninstall claudemap-coach`.
+
+---
+
+## How to use it
+
+### Create your first roadmap
 
 ```
 /claudemap-coach:create AI Engineer
 ```
 
-The coach will ask where to save the roadmap (your current directory, the global library at `~/claudemap/`, or a custom path), walk you through a short discovery conversation, research current trends, and produce a reviewed roadmap. A first run typically takes 5–10 minutes of light back-and-forth.
+The topic is freeform — pass anything from a job title to a specific skill (`/claudemap-coach:create Master Rust async`). What happens next:
+
+1. **Save location prompt.** You pick where the roadmap file lives — your current directory, the global library at `~/claudemap/`, or a custom path.
+2. **Discovery conversation.** A handful of focused questions about your starting point, target, time budget, and constraints. Usually 5–8 turns.
+3. **Research pass.** The coach pulls current tools, resources, and trends for your topic, with reference links.
+4. **Drafting.** A phased roadmap with milestones, success criteria, and a Mermaid timeline.
+5. **Expert review.** A specialist reviewer sanity-checks the draft for realism, gaps, and outdated content. Edits are applied automatically.
+6. **Save.** The final file is written to the location you chose. Open it in any editor or render it on GitHub.
+
+A first run takes 5–10 minutes of light back-and-forth.
+
+### Maintain it over time
+
+Once you have a roadmap file, the other three commands keep it useful:
+
+```
+/claudemap-coach:update                 # walk through milestones, mark progress
+/claudemap-coach:refresh                # pull in new tools, resources, trends
+/claudemap-coach:review                 # fresh expert review, no edits applied
+```
+
+Each opens with the same save-location prompt so it can find your roadmap. To skip the prompt, pass an explicit path:
+
+```
+/claudemap-coach:update ~/claudemap/ai-engineer.md
+```
 
 ---
 
