@@ -1,0 +1,178 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/Y-Bro/claudemap-coach/schemas/progress.json",
+  "title": "Roadmap progress sidecar",
+  "description": "Source-of-truth state for a generated roadmap. The markdown file is regenerated from this where possible.",
+  "type": "object",
+  "required": ["schemaVersion", "topic", "slug", "createdAt", "userInputs", "phases"],
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "topic": {
+      "type": "string",
+      "description": "User-facing topic string, e.g. 'AI Engineer in 12 months'"
+    },
+    "slug": {
+      "type": "string",
+      "description": "Filesystem-safe slug derived from topic, e.g. 'ai-engineer-12-months'",
+      "pattern": "^[a-z0-9][a-z0-9-]*$"
+    },
+    "persona": {
+      "type": "string",
+      "description": "The specialist persona used for review"
+    },
+    "modelId": {
+      "type": "string",
+      "description": "Anthropic model ID used to generate this roadmap, e.g. 'claude-opus-4-7'"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "lastUpdated": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "lastRefreshed": {
+      "type": ["string", "null"],
+      "format": "date-time"
+    },
+    "lockedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Set during atomic write to prevent concurrent edits. Cleared on success."
+    },
+    "userInputs": {
+      "type": "object",
+      "required": ["currentState", "target", "timeline", "hoursPerWeek"],
+      "additionalProperties": false,
+      "properties": {
+        "currentState": { "type": "string" },
+        "target": { "type": "string" },
+        "timeline": { "type": "string" },
+        "hoursPerWeek": { "type": "number", "minimum": 0 },
+        "budget": { "type": ["string", "null"] },
+        "constraints": { "type": ["string", "null"] },
+        "learningStyle": { "type": ["string", "null"] }
+      }
+    },
+    "phases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "milestones"],
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^p[0-9]+$",
+            "description": "Phase identifier, e.g. 'p1'"
+          },
+          "title": { "type": "string" },
+          "summary": { "type": ["string", "null"] },
+          "startDate": { "type": "string", "format": "date" },
+          "durationDays": { "type": "integer", "minimum": 1 },
+          "milestones": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["id", "text", "status"],
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "pattern": "^p[0-9]+m[0-9]+$"
+                },
+                "text": { "type": "string" },
+                "status": {
+                  "enum": ["pending", "in_progress", "done", "blocked", "dropped"]
+                },
+                "resources": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": ["name", "url", "verifiedDate"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "name": { "type": "string" },
+                      "url": { "type": "string", "format": "uri" },
+                      "verifiedDate": { "type": "string", "format": "date" },
+                      "category": {
+                        "enum": ["course", "book", "project", "community", "documentation", "video", "article", "certification", "other"]
+                      }
+                    }
+                  }
+                },
+                "completedAt": {
+                  "type": ["string", "null"],
+                  "format": "date-time"
+                },
+                "notes": { "type": ["string", "null"] }
+              }
+            }
+          },
+          "successCriterion": { "type": "string" }
+        }
+      }
+    },
+    "trendSignals": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "topInDemandSkills": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "rising": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "deprecatedItems": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "salaryAnchors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["role", "amount", "currency", "source"],
+            "properties": {
+              "role": { "type": "string" },
+              "amount": { "type": "number" },
+              "currency": { "type": "string" },
+              "location": { "type": ["string", "null"] },
+              "source": { "type": "string", "format": "uri" }
+            }
+          }
+        },
+        "verifiedDate": { "type": "string", "format": "date" },
+        "sources": {
+          "type": "array",
+          "items": { "type": "string", "format": "uri" }
+        }
+      }
+    },
+    "revisionLog": {
+      "type": "array",
+      "description": "Audit trail of auto-applied critical/high fixes from the critique-revise loop.",
+      "items": {
+        "type": "object",
+        "required": ["iteration", "source", "reason"],
+        "additionalProperties": false,
+        "properties": {
+          "iteration": { "type": "integer", "minimum": 0 },
+          "source": { "enum": ["reviewer", "specialist"] },
+          "location": { "type": "string" },
+          "original": { "type": "string" },
+          "revised": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    }
+  }
+}
