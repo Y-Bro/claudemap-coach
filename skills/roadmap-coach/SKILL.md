@@ -12,9 +12,9 @@ This skill is invoked by the four `/claudemap-coach:*` commands. The command set
 | Mode    | Status                | Section                         |
 |---------|-----------------------|---------------------------------|
 | create  | implemented (v0.2)    | §1 Create mode                  |
-| update  | not yet released      | §5 Stub                         |
-| refresh | not yet released      | §5 Stub                         |
-| review  | not yet released      | §5 Stub                         |
+| update  | implemented (v0.3)    | §2 Update mode                  |
+| refresh | not yet released      | §6 Stub                         |
+| review  | not yet released      | §6 Stub                         |
 
 ---
 
@@ -154,7 +154,102 @@ Mechanism for collecting stats:
 
 ---
 
-## §2 Invariants (apply to all modes)
+## §2 Update mode
+
+The `update` workflow is much cheaper than `create` — no subagents, no WebSearch, no critique loop. Just a guided walk through the existing milestones with sidecar + markdown regeneration.
+
+### Step 1 — Locate the roadmap
+
+- If the command passed an explicit path → use it.
+- Otherwise: list `*.md` files in the default roadmap directory (the `claudemapDir` plugin setting, or `~/claudemap/` as fallback). For each, show: filename, topic (from sidecar), last-updated date, completion percentage. Ask the user to pick one.
+- If no roadmaps exist, tell the user: `"No roadmaps found in <dir>. Run /claudemap-coach:create <topic> first."` Stop.
+
+### Step 2 — Load and validate
+
+- Read the sidecar JSON (`<path>.json` next to `<path>.md`). The sidecar is the source of truth.
+- If the sidecar is missing: tell the user, offer no recovery — they must regenerate via `/claudemap-coach:create`.
+- Validate against the schema in `templates/progress.json`. If `schemaVersion` doesn't match `1.0`, refuse and surface the version mismatch (migration tooling lands later).
+
+### Step 3 — Walk milestones
+
+Iterate through phases in order. For each phase, iterate through milestones.
+
+For each milestone whose current status is **not** `done` or `dropped`, ask:
+
+```
+Phase {n}, milestone {m}: "{milestone text}"
+Current status: {current_status}
+New status? [done | in_progress | blocked | dropped | skip]
+```
+
+- `done` — set `status: "done"`, set `completedAt` to current ISO 8601 timestamp.
+- `in_progress` — set `status: "in_progress"`. Optionally ask for a one-line note.
+- `blocked` — set `status: "blocked"`. Ask for a one-line note explaining what's blocking.
+- `dropped` — set `status: "dropped"`. Ask for a one-line note explaining why.
+- `skip` — leave the milestone untouched and continue.
+
+**Shortcuts the user can type instead of a status:**
+- `done all in phase {n}` — mark every remaining milestone in that phase as `done`.
+- `skip phase {n}` — skip the rest of that phase and move on.
+- `quit` — stop walking; save what's been set so far.
+
+### Step 4 — Update sidecar
+
+- Apply all status changes and notes.
+- Update `lastUpdated` to current ISO 8601 timestamp.
+- Set `lockedAt` during write; clear on success.
+
+### Step 5 — Re-render markdown
+
+Regenerate the markdown body from the sidecar. Specifically:
+
+- **Checkboxes** in milestone lists:
+  - `pending` → `- [ ] {text}`
+  - `in_progress` → `- [ ] 🚧 {text}` (with note appended in italics if present)
+  - `done` → `- [x] {text}`
+  - `blocked` → `- [ ] 🚫 {text} — _blocked: {note}_`
+  - `dropped` → `- [ ] ~~{text}~~ — _dropped: {note}_`
+
+- **Mermaid gantt** — phase status markers reflect completion:
+  - All milestones in a phase done → `:done, p{n}, ...`
+  - Some milestones in a phase done, others not → `:active, p{n}, ...`
+  - No milestones in a phase done → leave default
+
+- Preserve everything outside the `## Phases` and `## Timeline` sections (Overview, Resources by category, Specialist persona, Trend signals, Sources). Update mode does not touch those.
+
+### Step 6 — Atomic write
+
+Use the same atomic-write pattern as create (Step 9 of §1):
+1. Stage `<path>.md.tmp` and `<path>.json.tmp`.
+2. Validate (sidecar against schema, markdown contains required headings, Mermaid blocks parse).
+3. Two-step rename.
+4. On any failure, keep originals untouched.
+
+### Step 7 — Summary + run stats
+
+Print a short completion summary, then the standard `## Run Stats` block:
+
+```
+Updated: N marked done, M in progress, B blocked, D dropped.
+Phase completion: Phase 1: 80%, Phase 2: 30%, ...
+Overall: P% complete.
+
+## Run Stats
+- Input tokens:        ...
+- Output tokens:       ...
+- ...
+- Approx cost:         $0.XX  (model: <model_id>, prices verified <YYYY-MM>)
+```
+
+### Update-mode-specific invariants
+
+- **Cheap operation** — no subagents, no WebSearch, no critique loop.
+- **One milestone at a time** during the walk (the documented shortcuts are the only batching).
+- **Sidecar is the source of truth** — markdown is regenerated, not patched in place.
+
+---
+
+## §3 Invariants (apply to all modes)
 
 These rules are non-negotiable across every mode:
 
@@ -168,7 +263,7 @@ These rules are non-negotiable across every mode:
 
 ---
 
-## §3 Error handling matrix
+## §4 Error handling matrix
 
 | Failure | Behavior |
 |---|---|
@@ -183,7 +278,7 @@ These rules are non-negotiable across every mode:
 
 ---
 
-## §4 Edge cases
+## §5 Edge cases
 
 - **Topic too vague** (`/create grow`) — clarification before any work.
 - **Topic too broad** (`/create become a billionaire`) — out-of-scope; suggest narrower phrasing.
@@ -194,17 +289,17 @@ These rules are non-negotiable across every mode:
 
 ---
 
-## §5 Other modes (not yet released)
+## §6 Other modes (not yet released)
 
-If invoked in `update`, `refresh`, or `review` mode in this version, tell the user:
+If invoked in `refresh` or `review` mode in this version, tell the user:
 
-> "{Mode} mode lands in a future release — not yet implemented. For now, you can manually edit the markdown file or re-run `/claudemap-coach:create` with a fresh topic."
+> "{Mode} mode lands in a future release — not yet implemented. For now, you can manually edit the markdown file, run `/claudemap-coach:update` to mark progress, or re-run `/claudemap-coach:create` with a fresh topic."
 
 Do NOT attempt to half-implement these modes.
 
 ---
 
-## §6 References
+## §7 References
 
 - `templates/roadmap.md.tmpl` — markdown skeleton.
 - `templates/progress.json` — sidecar JSON schema.
