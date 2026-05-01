@@ -1,6 +1,6 @@
 {
   "name": "claudemap-coach-marketplace",
-  "description": "Distribution marketplace for the claudemap-coach plugin",
+  "description": "Distribution marketplace for the claudemap-coach plugin.",
   "owner": {
     "name": "Bharath Yerrumsetty",
     "email": "yerrumsetty.bharath@gmail.com"
@@ -8,9 +8,12 @@
   "plugins": [
     {
       "name": "claudemap-coach",
-      "description": "Turn career and learning goals into personalized, trend-grounded roadmaps with expert-reviewed quality.",
-      "version": "0.1.0",
+      "description": "Turn career and learning goals into personalized, trend-grounded roadmaps with expert-reviewed quality. Four commands — create, update, review, refresh — handle the full lifecycle of a personalized learning roadmap.",
+      "version": "0.5.0",
       "source": "./",
+      "homepage": "https://github.com/Y-Bro/claudemap-coach",
+      "license": "MIT",
+      "keywords": ["roadmap", "career", "learning", "coaching", "planning"],
       "author": {
         "name": "Bharath Yerrumsetty",
         "email": "yerrumsetty.bharath@gmail.com"
