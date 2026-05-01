@@ -5,17 +5,24 @@ All notable changes to `claudemap-coach`. Format follows [Keep a Changelog](http
 ## [Unreleased]
 
 ### Added
+- `/claudemap-coach:review [path]` — third working command. Read-only expert review of an existing roadmap. Dispatches `roadmap-reviewer` and `roadmap-specialist` in parallel against the current markdown, consolidates feedback into a single severity-grouped report, and presents it without editing. The user can opt-in to apply specific suggestions with `apply suggestion #N` (or `apply all critical/high`); otherwise no files change.
+- `commands/roadmap-review.md` — slash command file.
+- `skills/roadmap-coach/SKILL.md` §3 Review mode — full 8-step workflow (locate → load → resolve persona → parallel dispatch → consolidate → present read-only → optional apply → run stats).
+
+### Changed
+- `skills/roadmap-coach/SKILL.md` mode dispatch table — `review` is now `implemented (v0.4)`.
+- Section numbering renumbered to insert §3 Review mode (downstream sections shifted by one).
+- §7 stub list narrowed to `refresh` only.
+
+### Notes
+- `/claudemap-coach:refresh` is the only command still pending; it will land in a future release.
+
+## [0.3.0] - 2026-05-01
+
+### Added
 - `/claudemap-coach:update [path]` — second working command. Walks through milestones one at a time, captures status changes (`done` / `in_progress` / `blocked` / `dropped` / `skip`) with optional notes, regenerates the markdown (checkboxes + Mermaid styling) from the sidecar, and atomic-writes both files. No subagents, no WebSearch — cheap operation. Supports shortcuts: `done all in phase {n}`, `skip phase {n}`, `quit`.
 - `commands/roadmap-update.md` — slash command file.
 - `skills/roadmap-coach/SKILL.md` §2 Update mode — full workflow (locate → load → walk → update sidecar → re-render → atomic write → summary + run stats).
-
-### Changed
-- `skills/roadmap-coach/SKILL.md` mode dispatch table — `update` is now `implemented (v0.3)`.
-- Section numbering renumbered to insert §2 Update mode (downstream sections shifted by one).
-- §6 stub list narrowed to `refresh` and `review` only.
-
-### Notes
-- `/claudemap-coach:refresh` and `/claudemap-coach:review` are still not implemented and will return a "coming in a future release" message.
 
 ## [0.2.0] - 2026-05-01
 
